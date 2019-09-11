@@ -24,4 +24,12 @@ public class GreetingController {
 	    
 	}
 	
+	@GetMapping("/autoriaus_knygos")
+	public String autoriaus_knygos(@RequestParam(name="name", required=false, defaultValue="World") String name, Model model) {
+		
+	        model.addAttribute("name", name);
+	        return "autoriaus_knygos";
+	    
+	}
+	
 }

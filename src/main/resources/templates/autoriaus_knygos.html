@@ -1,0 +1,255 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.niekam.nieko">
+<head>
+
+    <title>Vieno autoriaus knygos</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/black-tie/jquery-ui.css">
+	
+<style>
+					
+		/* formos stilius */
+					
+	label, input { display:block; }
+	input.text { margin-bottom:12px; width:95%; padding: .4em; }
+	fieldset { padding:0; border:0; margin-top:25px; }
+	h1 { font-size: 1.2em; margin: .6em 0; }
+	div#users-contain { width: 350px; margin: 20px 0; }
+	div#users-contain table { margin: 1em 0; border-collapse: collapse; width: 100%; }
+	div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
+	.ui-dialog .ui-state-error { padding: .3em; }
+	.validateTips { border: 1px solid transparent; padding: 0.3em; }
+			
+	.anuliuotas {
+		color: red;
+	}
+	
+	.redaguoti {
+		color: green;
+	}
+	
+</style>
+
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" 
+	integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" 
+	crossorigin="anonymous">
+</script>
+
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	
+<script>
+
+$(document).ready ( function() {
+
+	var id;
+	var id_knyga;
+	
+	searchParams = new URLSearchParams(window.location.search);
+		
+		if ( searchParams.has( 'id' )  ) {
+		
+			id = searchParams.get( 'id' )
+		}
+
+	pasiimtiVienoAutoriausKnygas();
+
+	function pasiimtiVienoAutoriausKnygas() {
+	
+		$.ajax(
+			{
+				url: "http://localhost:8080/restfull/autorius?id=" + id 
+														
+			})
+			
+		.done(	function( data ) {
+
+			res_str = '<table>'
+				+ '<tr><th>ID</th><th>Pavadinimas</th><th>Tipas</th></tr>';
+									
+			for ( i = 0; i < data.knyga.length; i++) {
+						
+				res_str += '<tr class="s' + data.knyga[ i ].pavadinimas  + '"data-pavadinimas="' + data.knyga[i].pavadinimas + '"data-tipas="' + data.knyga[i].tipas + '" data-id="' + data.knyga [ i ].id  +'" >'
+						+ '<td>' + data.knyga [ i ].id + '</td>' 
+						+ '<td>' + data.knyga [ i ].pavadinimas + '</td>'
+						+ '<td>' + data.knyga [ i ].tipas + '</td>';
+				
+				res_str += '<td><input type="button" class="redaguoti" value="Redaguoti"></td>'
+				res_str += '<td><input type="button" class="anuliuotas" value="Naikinti"></td>'
+				res_str += '</tr>';
+			}
+						
+			res_str += '</table>'
+			
+			$( '#knygos' ).html ( res_str );
+			
+			$( '.anuliuotas' ).on ( 'click', function() {
+						
+				id_knyga = $( this ).parent().parent().data( 'id' );
+				trintiKnygaAutoriaus(id_knyga);							
+			});
+			
+			$('.redaguoti').on ('click', function() {
+				
+				red_knyga_autoriaus.dialog( "open" );
+							
+				id_knyga = $( this ).parent().parent().data( 'id' );
+				$( '#pavadinimas' ).val ( $( this ).parent().parent().data( 'pavadinimas' ) );
+				$( '#tipas' ).val ( $( this ).parent().parent().data( 'tipas' ) );
+				
+			});
+		
+		});
+	}
+
+	function trintiKnygaAutoriaus (id) {
+	
+	params_str = 'id=' + id;  
+		
+	$.ajax(
+		{
+			url: "http://localhost:8080/restfull/trink_knyga?" + params_str
+		}
+	)
+	.done( function( data ) {
+				
+		pasiimtiVienoAutoriausKnygas();
+	
+	});
+	
+	}	
+
+	function edit_knyga() {
+		
+		redaguotas = {
+				
+			id: parseInt ( $( '#id' ).val()	)
+			, pav: $( '#pavadinimas' ).val()
+			, tipas: $( '#tipas' ).val() 
+				
+		}
+			
+		params_str = 
+	
+			"id=" + id_knyga
+			+ "&pavadinimas="  + redaguotas.pav 
+			+ '&tipas=' + redaguotas.tipas 
+								
+		$.ajax(
+			{
+				url: "http://localhost:8080/restfull/edit_knyga?" + params_str
+			}
+		)
+		
+		.done( function( data ) {
+				
+			pasiimtiVienoAutoriausKnygas();
+			
+		});
+		
+		red_knyga_autoriaus.dialog( "close" );
+	
+	}
+
+	red_knyga_autoriaus = $( "#dialog-form" ).dialog({
+		autoOpen: false,
+		height: 400,
+		width: 400,
+		modal: true,
+		buttons: {
+        "Išsaugoti pakeitimus": edit_knyga,
+        Uždaryti: function() {
+         red_knyga.dialog( "close" );
+        }
+		},
+	});
+
+	prideti_knyga_autoriui = $( "#dialog-form1" ).dialog({
+		autoOpen: false,
+		height: 400,
+		width: 380,
+		modal: true,
+		buttons: {
+        "Įtraukti": add_knyga_autoriui,
+        Uždaryti: function() {
+        prideti_knyga_autoriui.dialog( "close" );
+        }
+		},
+	});	
+
+	$( "#itraukti" ).on( "click", function() { prideti_knyga_autoriui.dialog("open") });
+
+	function add_knyga_autoriui() {
+
+		redaguotas = {
+				
+			pava: $( '#pavadinima' ).val()
+			, tipa: $( '#tipa' ).val() 
+						
+		}
+			
+		params_str = 
+	
+			"pavadinimas="  + redaguotas.pava 
+			+ '&tipas=' + redaguotas.tipa 
+			+ '&autorius_id=' + id
+			
+		$.ajax(
+			{
+				url: "http://localhost:8080/restfull/add_knyga?" + params_str
+			}
+		)
+		
+		.done( function( data ) {
+				
+			pasiimtiVienoAutoriausKnygas();
+			
+		});
+		
+		prideti_knyga_autoriui.dialog( "close" );
+
+	}
+
+});
+
+function goBack() {
+	window.history.back();
+}
+
+</script>
+</head>
+
+<body>
+
+<button onclick="goBack()">Go Back</button>
+
+<div id="knygos"></div>
+
+<div id="dialog-form" title="Redaguoti knyga">
+	<form>
+		<fieldset>
+			<label for="pav">Pavadinimas</label>
+			<input type="text" name="pav" id="pavadinimas" value="pavadinimas" class="text">
+			<label for="tip">Tipas</label>
+			<input type="text" name="tip" id="tipas" value="tipas" class="text">
+	        <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+		</fieldset>
+	</form>
+</div>
+
+<div id="dialog-form1" title="Itraukti knyga">
+	<form>
+		<fieldset>
+			<label for="pav">Pavadinimas</label>
+			<input type="text" name="pava" id="pavadinima" value="pavadinima" class="text">
+			<label for="tip">Tipas</label>
+			<input type="text" name="tipa" id="tipa" value="tipa" class="text">
+			<input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+		</fieldset>
+	</form>
+</div>
+
+<p><label for="itraukti"></label><input class="itraukti" type="button" value="Įtraukti naują" id="itraukti" title="Įtraukti naują"></p>
+
+
+</body>
+</html>
